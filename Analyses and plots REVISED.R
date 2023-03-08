@@ -13,7 +13,7 @@
 ## ---------------------------------------------------------------------
 ########################################################################
 
-## Push test
+## Push test 2
 
 ## WORKING LIBRARIES----------------------------------------------------
 rm(list=ls()); gc(); windows()
@@ -263,9 +263,8 @@ plot_cpue <-
   ); plot_cpue
 
 ## WRITE OUT PLOT
-# (Remove comments to make plot)
-tiff(filename = "./CPUE_plots.tif", 
-     units = "in", width = 7, height = 3.5, res = 400)
+png(filename = "./CPUE_plot.png", 
+     units = "in", width = 7, height = 3.5, res = 1000)
 plot(plot_cpue) 
 dev.off()
 
@@ -703,8 +702,8 @@ vidplots <-
              widths = c(1, 2, 2, 1),
              layout_matrix = rbind(c(1, 1, 2, 2), c(NA, 3, 3, NA)))
 
-png(filename = "./Video_plots.png", 
-     units = "in", width = 8, height = 9, res = 2000)
+tiff(filename = "./Video_plots.tiff", 
+     units = "in", width = 8, height = 9, res = 300)
 plot(vidplots) 
 dev.off()
 
