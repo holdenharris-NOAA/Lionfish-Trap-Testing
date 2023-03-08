@@ -701,8 +701,8 @@ vidplots <-
              widths = c(1, 2, 2, 1),
              layout_matrix = rbind(c(1, 1, 2, 2), c(NA, 3, 3, NA)))
 
-tiff(filename = "./Video_plots.tiff", 
-     units = "in", width = 8, height = 9, res = 300)
+png(filename = "./Video_plots.png", 
+     units = "in", width = 8, height = 9, res = 1000)
 plot(vidplots) 
 dev.off()
 
