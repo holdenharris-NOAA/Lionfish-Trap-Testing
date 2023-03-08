@@ -179,10 +179,12 @@ catch_mod_tab$Type = factor(catch_mod_tab$Type, levels = c("L", "S", "G"))
 
 ###########################################################################
 ## ------------------------------------------------------------------------
+##
 ## PLOT CPUE 
+##
 ## ------------------------------------------------------------------------
 
-## SUMMARIZE (SUMM) MEANS AND SE FOR BOXPLOT---------------------------------------
+## SUMMARIZE (SUMM) MEANS AND SE FOR BOXPLOT-------------------------------
 summ_lf <- catch_mod_tab %>% 
   group_by(Type) %>% 
   summarise(
@@ -270,7 +272,9 @@ dev.off()
 
 ###########################################################################
 ## ------------------------------------------------------------------------
+##
 ## STATISTICAL MODELS FOR CPUE
+##
 ## ------------------------------------------------------------------------
 
 
@@ -281,9 +285,7 @@ plot(cpue_lf ~ LF_dens, data = catch_mod_tab,
      ylab = "Lionfish CPUE (kg)", xlab = "Lionfish density (fish per 100 m2)")
 abline(dens_lm) 
 ## --> Catch not correlated to LF density
-## --> Looks zero-inflated
-## --> A GLM appears needed
-
+## --> Looks zero-inflated and GLM appears needed
 
 ## Examine ERROR STRUCTURE------------------------------------------------
 ## FOR THE THREE CATCH TYPES
@@ -325,7 +327,6 @@ poisson <- fitdistr(as.integer(pos_fish$cpue_fish), "Poisson"); qqp(pos_fish$cpu
 nbinom <- fitdistr(as.integer(pos_fish$cpue_fish), "Negative Binomial"); qqp(pos_fish$cpue_fish, "nbinom", size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]]) ## BEST FIT DUE TO OVERDISPERSION
 ## --> Log normal and negative binomial best fits
 
-
 ## NON-FISHERY
 ## All catches
 par(mfrow=c(2,2))
@@ -343,7 +344,6 @@ qqp(pos_sdrf$cpue_fish + 1, distribution = "lnorm") ## BEST FIT
 poisson <- fitdistr(as.integer(pos_sdrf$cpue_fish), "Poisson"); qqp(pos_sdrf$cpue_fish, "pois", lambda = poisson$estimate) 
 nbinom <- fitdistr(as.integer(pos_sdrf$cpue_fish), "Negative Binomial"); qqp(pos_sdrf$cpue_fish, "nbinom", size = nbinom$estimate[[1]], mu = nbinom$estimate[[2]]) ## BEST FIT DUE TO OVERDISPERSION
 ## --> Again, log normal and negative binomial best fits
-
 
 
 ###########################################################################
@@ -589,7 +589,9 @@ summ_bydens$Type = factor(summ_bydens$Type, levels = c("L", "S", "G"))
 
 ###########################################################################
 ## ------------------------------------------------------------------------
+##
 ## RECRUITMENT PLOTS
+##
 ## ------------------------------------------------------------------------
 
 ## PLOT SETTINGS-----------------------------------------------------------
@@ -651,7 +653,8 @@ plot_lf_tod <-
                 position=position_dodge(width=0.9),
                 width = w) +
   scale_x_discrete(labels = c("Lobster", "Seabass", "Gittings")) +
-  scale_fill_manual(values = dielcols, guide = guide_legend(title = "Diel period"), labels = c("Dawn", "Midday", "Dusk")) +
+  scale_fill_manual(values = dielcols, guide = guide_legend(title = "Diel period"), 
+                    labels = c("Dawn", "Midday", "Dusk")) +
   scale_y_continuous(expand = c(0,0,0,0.02)) +
   xlab ("Trap type") +
   ylab (ylab_lf) +
@@ -706,9 +709,98 @@ png(filename = "./Video_plots.png",
 plot(vidplots) 
 dev.off()
 
+
+########################################################################
+##
+## PLOT IN VS OUT BY TRAP TYPE -----------------------------------------
+
+summ_inout <- vids %>% 
+  filter(!is.na(Min_count)) %>% 
+  filter(!is.na(TOD)) %>% 
+  group_by(Replicate_video, Trip, Type, TOD, Site_ID, Trap_footprint, soak_d, In.Out, Fishery_cat) %>% 
+  summarise(
+    count = sum(Min_count, na.rm = TRUE),
+    nvid = n()
+  ) %>% 
+  group_by(Type, In.Out, Fishery_cat) %>% 
+  summarise(
+    mu_count = mean(count),
+    se_count = sd(count)/sqrt(n())
+  ); summ_inout
+
+ax.txt = 11
+ax.tit = 12
+leg.ttl = 11
+leg.txt = 10
+strp.txt = 12
+
+cols = c("lightcoral", "palegreen3", "steelblue1") 
+s = 0.5
+w = 0.2
+
+## Order factor levels
+summ_inout$Type = factor(summ_inout$Type, levels = c("L", "S", "G"))
+summ_inout$Fishery_cat = factor(summ_inout$Fishery_cat, levels = c("lionfish", "fishery", "non-fishery"))
+levels(summ_inout$Fishery_cat) <- c("Lionfish", "Fishery species", "Non-fishery species")
+
+## Make plot
+plot_inout <- 
+  ggplot(summ_inout) +
+  geom_bar(aes(x = Type,
+               fill = Type,
+               alpha = In.Out,
+               y = mu_count), 
+           stat = "identity",
+           color = 'black',
+           position= position_dodge(width=0.9),
+           width = 0.8) +
+  facet_wrap(~Fishery_cat, scales = "free", strip.position = "top") +
+  geom_errorbar(aes(x = Type,
+                    fill = Type,
+                    alpha = In.Out,
+                    ymin = pmax(mu_count - (1.96 * se_count), 0.00),   
+                    ymax = mu_count + (1.96 * se_count)),
+                size = s, 
+                position=position_dodge(width=0.9),
+                color = "black",
+                width = w) +
+  xlab ("") + ylab ("Count per trap (#)") +
+  scale_fill_manual(values = cols, 
+                    guide = guide_legend(title = "Trap Type"), 
+                    labels = c("Lobster", "Sea bass","Gittings")) +
+  scale_alpha_discrete(range = c(0.9, 0.8), 
+                       guide = guide_legend(title = "Relative position"), 
+                       labels = c("Inside trap", "Outside trap")) +
+  scale_y_continuous(expand = c(0,0,0,0.1)) +
+  theme(
+    strip.background = element_blank(),
+    strip.text.x = element_blank(),
+    panel.border = element_rect(fill = NA, colour = "white"),
+    axis.title = element_text(size = ax.tit, color = "black"),
+    axis.text = element_text(size = ax.txt, color = "black"),
+    axis.title.y = element_text(size = ax.tit),
+    legend.title = element_text(size = leg.ttl),
+    legend.text  = element_text(size = leg.txt),
+    axis.line = element_line(),
+    panel.background = element_rect(fill = "grey100"),
+    legend.position = "right",
+    legend.background = element_rect(size = 0.5, color = "black", linetype="solid")
+  ); plot_inout
+
+## Write out plot
+png(filename = "./Recruitment_plot.png", 
+     units = "in", width = 7, height = 3.5, res = 1000)
+plot(plot_inout) 
+dev.off()
+
+
+
 ###########################################################################
 ## ------------------------------------------------------------------------
+##
 ## STATISTICAL MODELS FOR FOR LIONFISH RECRUITMENT 
+## FROM THE TIME-LAPSE VIDEO DATA 
+##
 ## ------------------------------------------------------------------------
 
 bytod$TOD = factor(bytod$TOD, levels = c("M", "A", "U"))
@@ -722,12 +814,11 @@ nbinom <- fitdistr(as.integer(bytod$lf_in), "Negative Binomial"); qqp(bytod$lf_i
 par(mfrow=c(1,1))
 
 
-
-## ------------------------------------------------------------------------
-## ZINB 
+############################################################################
+## ZINB Models
+## --> Updated from lognormal GLMs 
 ## --> Better approach given zero-inflation, althouh findings similiar to 
 ##     lognormal GLMM.
-
 
 
 ## DETERMINE ERROR STRUCTURE-----------------------------------------------
